@@ -15,11 +15,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class MTQtesterApp(customtkinter.CTk):
     OUTPUT_PATH = Path(__file__).parent
-<<<<<<< HEAD
     ASSETS_PATH = OUTPUT_PATH / Path(r"D:\MTQ-Tester-GUI\build\assets\frame0")
-=======
-    ASSETS_PATH = OUTPUT_PATH / Path(r"D:\MTQ_measure\build\assets\frame0")
->>>>>>> 5f25393eb52e290c5e33d24c86c846ef3b28b11e
     def __init__(self):
         super().__init__()
 
