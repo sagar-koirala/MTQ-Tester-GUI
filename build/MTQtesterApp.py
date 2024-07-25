@@ -9,10 +9,12 @@ import threading
 import queue
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 # customtkinter.set_appearance_mode("Light")
-
+customtkinter.deactivate_automatic_dpi_awareness()
 class MTQtesterApp(customtkinter.CTk):
     OUTPUT_PATH = Path(__file__).parent
     ASSETS_PATH = OUTPUT_PATH / Path(r"D:\MTQ-Tester-GUI\build\assets\frame0")
@@ -59,27 +61,26 @@ class MTQtesterApp(customtkinter.CTk):
         self.grid_rowconfigure(3, weight=4)
         self.grid_columnconfigure((0,1), weight=1)
 
-        # App label frame
-        self.app_label_frame = customtkinter.CTkFrame(self, height=38, corner_radius=10, fg_color="#242424")
-        self.app_label_frame.grid(row = 0, column = 0,columnspan =2,padx=10, pady=0, sticky ="nsew")
-        # App label
-        self.app_label = customtkinter.CTkLabel(self.app_label_frame, text="MTQ Tester Interface",font=customtkinter.CTkFont(family="Inter" ,size = 24, weight="bold"))
-        self.app_label.grid(row=0, column=0, sticky = "w")
-
+        # # App label
+        self.app_label = customtkinter.CTkLabel(self, text="MTQ Tester Interface",font=customtkinter.CTkFont(family="Inter" ,size = 24, weight="bold"))
+        self.app_label.grid(row=0, column=0, padx = 10, pady = 10, sticky = "w")
         # Connection Settings
-        self.com_port_dropdown = customtkinter.CTkComboBox(self.app_label_frame, values=self.get_com_ports(), command=self.disconenct_to_serial)
-        self.com_port_dropdown.grid(row=0, column=1, pady=5, padx=(0,0))
+        self.com_port_dropdown = customtkinter.CTkComboBox(self, values=self.get_com_ports(), command=self.disconenct_to_serial)
+        self.com_port_dropdown.grid(row=0, column=1, pady=10, padx=(0,330), sticky ='e')
 
-        self.baud_rate_dropdown = customtkinter.CTkComboBox(self.app_label_frame, values=["9600", "19200", "38400", "57600", "115200"], command=self.disconenct_to_serial)
-        self.baud_rate_dropdown.grid(row=0, column=1, pady=5, padx=(295,0))
+        self.baud_rate_dropdown = customtkinter.CTkComboBox(self, values=["9600", "19200", "38400", "57600", "115200"], command=self.disconenct_to_serial)
+        self.baud_rate_dropdown.grid(row=0, column=1, pady=10, padx=(0,180), sticky = 'e')
 
-        self.connect_button = customtkinter.CTkButton(self.app_label_frame, text="Connect",command=self.connect_to_serial)
-        self.connect_button.grid(row=0, column=1, pady=5, padx=(618,0),sticky="e")
+        self.connect_button = customtkinter.CTkButton(self, text="Connect",command=self.connect_to_serial)
+        self.connect_button.grid(row=0, column=1, pady=10, padx=10,sticky="e")
         self.connect_button_defColor = self.connect_button.cget("fg_color")
         self.connect_button_defHoverColor = self.connect_button.cget("hover_color")
+        
         # Console frame
-        self.console_frame = customtkinter.CTkFrame(self,width=494, height=615, corner_radius=10, fg_color="#2B2B2B")
+        self.console_frame = customtkinter.CTkFrame(self,width=494, height=615, corner_radius=10)
         self.console_frame.grid(row = 1, column = 0,rowspan = 3, padx=(10,5), pady=(0,5),sticky ="nsew")
+        self.console_frame.grid_rowconfigure(1, weight=1)
+        self.console_frame.grid_columnconfigure(1, weight=1)
         # console hex/utf8 option menu
         self.console_dtype_menu = customtkinter.CTkSegmentedButton(self.console_frame,width=300)
         self.console_dtype_menu.grid(row=0, column=0, padx=(10, 5), pady=6, sticky="nws")
@@ -87,15 +88,15 @@ class MTQtesterApp(customtkinter.CTk):
         self.console_dtype_menu.set("Utf8")
         # Clear button
         self.btn_clear_console = customtkinter.CTkButton(self.console_frame, text="Clear", width=60,fg_color='transparent',border_color="#949A9f", hover_color = "grey",border_width=2,command=self.clear_console)
-        self.btn_clear_console.grid(row=0, column = 0, padx=(0,70), pady=6, sticky="e")
+        self.btn_clear_console.grid(row=0, column = 1, padx=(0,70), pady=6, sticky="e")
         # lock button
         self.btn_lock = customtkinter.CTkButton(self.console_frame, text="Lock", width=60,fg_color='transparent',border_color="#949A9f", hover_color = "grey",border_width=2, command=self.toggle_scroll_lock)
-        self.btn_lock.grid(row=0, column = 0, padx=(0,5), pady=6, sticky="e")
+        self.btn_lock.grid(row=0, column = 1, padx=(0,5), pady=6, sticky="e")
         # create scrollable textbox
-        self.console_textbox = customtkinter.CTkTextbox(self.console_frame,height=567, width=480 , activate_scrollbars=False,font=customtkinter.CTkFont(family="Inter" ,size = 13, weight="normal"))
-        self.console_textbox.grid(row=1, column=0,padx=(7,5),pady=(0,5),sticky="nsew")
+        self.console_textbox = customtkinter.CTkTextbox(self.console_frame, activate_scrollbars=False,font=customtkinter.CTkFont(family="Inter" ,size = 13, weight="normal"))
+        self.console_textbox.grid(row=1, column =0, columnspan =2,padx=6,pady=6,sticky="nsew")
         self.textbox_scrollbar = customtkinter.CTkScrollbar(self.console_frame,bg_color="#1E1e1e", command=self.console_textbox.yview, width=15)
-        self.textbox_scrollbar.grid(row=1, column=0,padx=10, pady = (5,10),sticky="nse")
+        self.textbox_scrollbar.grid(row=1, column=0,columnspan =2,padx=10, pady = 10,sticky="nse")
         self.console_textbox.configure(yscrollcommand=self.textbox_scrollbar.set)
         self.console_textbox_scroll = True
         self.console_textbox.tag_config('timestamp', foreground='grey')
@@ -104,40 +105,42 @@ class MTQtesterApp(customtkinter.CTk):
         self.console_textbox.tag_config('error', foreground = "red")
 
         # output_browse_frameframe
-        self.output_path_frame = customtkinter.CTkFrame(self, width=494, height=66, corner_radius=10, fg_color="#242424")
+        self.output_path_frame = customtkinter.CTkFrame(self, corner_radius=10, fg_color="#242424")
         self.output_path_frame.grid(row = 4, column = 0,padx=(10,5), sticky ="nsew")
+        # self.console_frame.grid_rowconfigure(1, weight=1)
+        self.output_path_frame.grid_columnconfigure(0, weight=1)
 
         self.output_path_label = customtkinter.CTkLabel(self.output_path_frame, text="Output Path:",font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="bold"))
-        self.output_path_label.grid(row = 0, column = 0, sticky = "w")
-        self.output_path_entry = customtkinter.CTkEntry(self.output_path_frame, width=380)
-        self.output_path_entry.grid(row = 1, column = 0, sticky = "w")
+        self.output_path_label.grid(row = 0, column = 0, sticky = "nsw")
+        self.output_path_entry = customtkinter.CTkEntry(self.output_path_frame)
+        self.output_path_entry.grid(row = 1, column = 0, sticky = "nsew")
         self.output_path_entry.insert(0, str(self.OUTPUT_PATH))  # default output folder
         # browse button
         self.button_image_browse = customtkinter.CTkImage(Image.open(self.relative_to_assets("folder_browse_icon.png")), size=(21,16))
         self.btn_browse_folder = customtkinter.CTkButton(self.output_path_entry, image=self.button_image_browse, text=None, width=10, height=5, fg_color='transparent', hover_color="grey", command=self.browwse_output_folder)
         self.btn_browse_folder.grid(row=0, column = 0, padx=(0,5), pady=0, sticky = "e")
         self.save_data_button = customtkinter.CTkButton(self.output_path_frame, text="Save Data", width=100,command=self.save_data)
-        self.save_data_button.grid(row = 1, column = 1, padx=(15,0),sticky ="e")
+        self.save_data_button.grid(row = 1, column = 1, padx=15,sticky ="e")
 
         # plotter frame
         self.plotter_frame = customtkinter.CTkFrame(self, width=502, height=486, corner_radius=10, fg_color="#2B2B2B")
         self.plotter_frame.grid(row = 1, column = 1,rowspan = 2,pady=(0,5), padx=(5,10),sticky ="nsew")
-
-        # plot value checkboxes frame
-        self.entry_frame = customtkinter.CTkFrame(master=self.plotter_frame, height=20)
-        self.entry_frame.grid(row=0, column=0, pady=6, padx=(10,0), sticky="w")
+        self.plotter_frame.grid_rowconfigure(1, weight=1)
+        self.plotter_frame.grid_columnconfigure(1, weight=1)
 
         self.btn_clear_chart = customtkinter.CTkButton(self.plotter_frame, text="Clear", width=60,fg_color='transparent',border_color="#949A9f", hover_color = "grey",border_width=2,command=self.clear_chart)
-        self.btn_clear_chart.grid(row=0, column = 0, padx=(10,10), pady=6, sticky="e")
+        self.btn_clear_chart.grid(row=0, column = 1, padx=(10,10), pady=6, sticky="e")
 
         # graph area
-        self.graph_frame = customtkinter.CTkFrame(self.plotter_frame, width=492, height=425, corner_radius=10, fg_color="#1E1E1E")
-        self.graph_frame.grid(row = 1, column = 0,rowspan = 2,pady=(0,6), padx=(7,5),sticky ="nsew")
+        self.graph_frame = customtkinter.CTkFrame(self.plotter_frame, corner_radius=10, fg_color="#1E1E1E")
+        self.graph_frame.grid(row = 1, column = 0,columnspan = 2,pady=6, padx=6,sticky ="nsew")
     
-        self.fig, self.ax = plt.subplots(figsize=(self.graph_frame.winfo_width()*4.9 , self.graph_frame.winfo_height()*4),facecolor="#1E1E1E")
+        self.fig = Figure(facecolor="#1E1E1e")
+        self.ax = self.fig.add_subplot(111)
         self.ax.set_facecolor("#1E1e1e")
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.graph_frame)
-        self.canvas.get_tk_widget().grid(row=0,column=0, padx=1, pady=5, sticky="sew")
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(fill=customtkinter.BOTH, padx = 5, pady= 5, expand=True)
         self.ax.spines['left'].set_color("grey")
         self.ax.spines['bottom'].set_color("grey")
         self.ax.spines['right'].set_color("#1E1e1e")
@@ -148,6 +151,8 @@ class MTQtesterApp(customtkinter.CTk):
         # CMD selector frame
         self.cmdSel_frame = customtkinter.CTkFrame(self, width=502, height=115, corner_radius=10, fg_color="#2B2B2B")
         self.cmdSel_frame.grid(row = 3, column = 1,pady=(5,5), padx=(5,10),sticky ="nsew")
+        # self.cmdSel_frame.grid_rowconfigure(1, weight=1)
+        self.cmdSel_frame.grid_columnconfigure((1,3), weight=1)
 
         self.pwrsel_label = customtkinter.CTkLabel(self.cmdSel_frame, text="Select MTQ power", font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="bold"))
         self.pwrsel_label.grid(row=0, column=0,columnspan=2,padx=(10,0), sticky = "w")
@@ -158,46 +163,45 @@ class MTQtesterApp(customtkinter.CTk):
         self.Z_label = customtkinter.CTkLabel(self.cmdSel_frame, text="Z", font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="normal"))
         self.Z_label.grid(row=3, column=0,padx=(10,0),pady=2, sticky = "w")
 
-        self.slider_X = customtkinter.CTkSlider(self.cmdSel_frame, from_=self.MTQ_min_pwr, to=self.MTQ_max_pwr, number_of_steps=self.MTQ_max_pwr, height=25, width=250, command=self.update_slider_vals)
-        self.slider_X.grid(row=1, column=1, padx=(5, 5),  sticky="w")
-        self.slider_Y = customtkinter.CTkSlider(self.cmdSel_frame, from_=self.MTQ_min_pwr, to=self.MTQ_max_pwr, number_of_steps=self.MTQ_max_pwr,height=25, width=250, command=self.update_slider_vals)
-        self.slider_Y.grid(row=2, column=1, padx=(5, 5),  sticky="w")
-        self.slider_Z = customtkinter.CTkSlider(self.cmdSel_frame, from_=self.MTQ_min_pwr, to=self.MTQ_max_pwr, number_of_steps=self.MTQ_max_pwr,height=25, width=250, command=self.update_slider_vals)
-        self.slider_Z.grid(row=3, column=1, padx=(5, 5), sticky="w")
-        self.pwrX_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_X.get())), width=50, border_color='#2B2B2B',fg_color='transparent', font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
-        self.pwrX_label.grid(row=1, column=2, sticky = "w")
-        self.pwrY_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_Y.get())), width=50, border_color='#2B2B2B',fg_color='transparent',font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
-        self.pwrY_label.grid(row=2, column=2, sticky = "w")
-        self.pwrZ_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_Z.get())),width=50, border_color='#2B2B2B',fg_color='transparent', font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
-        self.pwrZ_label.grid(row=3, column=2, sticky = "w")
-
-
+        self.slider_X = customtkinter.CTkSlider(self.cmdSel_frame, from_=self.MTQ_min_pwr, to=self.MTQ_max_pwr, number_of_steps=self.MTQ_max_pwr, height=25,  command=self.update_slider_vals)
+        self.slider_X.grid(row=1, column=1, padx=(5, 5), pady=1, sticky="we")
+        self.slider_Y = customtkinter.CTkSlider(self.cmdSel_frame, from_=self.MTQ_min_pwr, to=self.MTQ_max_pwr, number_of_steps=self.MTQ_max_pwr,height=25,  command=self.update_slider_vals)
+        self.slider_Y.grid(row=2, column=1, padx=(5, 5),pady=1,  sticky="we")
+        self.slider_Z = customtkinter.CTkSlider(self.cmdSel_frame, from_=self.MTQ_min_pwr, to=self.MTQ_max_pwr, number_of_steps=self.MTQ_max_pwr,height=25, command=self.update_slider_vals)
+        self.slider_Z.grid(row=3, column=1, padx=(5, 5), pady=1, sticky="we")
+        self.pwrX_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_X.get())),  border_color='#2B2B2B',fg_color='transparent', font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
+        self.pwrX_label.grid(row=1, column=2, sticky = "nswe")
+        self.pwrY_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_Y.get())),  border_color='#2B2B2B',fg_color='transparent',font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
+        self.pwrY_label.grid(row=2, column=2, sticky = "nswe")
+        self.pwrZ_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_Z.get())), border_color='#2B2B2B',fg_color='transparent', font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
+        self.pwrZ_label.grid(row=3, column=2, sticky = "nswe")
 
         self.pwrsel_label = customtkinter.CTkLabel(self.cmdSel_frame, text="Select Command", font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="bold"))
-        self.pwrsel_label.grid(row=0, column=3,rowspan=2,padx=(20,0), sticky="wse")
-        self.cmdSel_dropdown = customtkinter.CTkComboBox(self.cmdSel_frame, values=list(self.MTQ_ctrl_commands.keys()), command=self.update_tx_CMD)
-        self.cmdSel_dropdown.grid(row=2, column=3,padx=(20,0), sticky = "wne")
-
+        self.pwrsel_label.grid(row=0, column=3,rowspan=2,padx=(0,60), sticky="se")
+        self.cmdSel_dropdown = customtkinter.CTkComboBox(self.cmdSel_frame, width= 200, values=list(self.MTQ_ctrl_commands.keys()), command=self.update_tx_CMD)
+        self.cmdSel_dropdown.grid(row=2, column=3,rowspan=2,padx=20, sticky = "ne")
 
         # tx_console_frame frame
         self.tx_console_frame = customtkinter.CTkFrame(self, width=502, height=92, corner_radius=10, fg_color="#242424")
         self.tx_console_frame.grid(row = 4, column = 1,padx=(5,10),pady=(0,0),sticky ="nsew")
+        # self.cmdSel_frame.grid_rowconfigure(1, weight=1)
+        self.tx_console_frame.grid_columnconfigure((1), weight=1)
         self.tx_console_label = customtkinter.CTkLabel(self.tx_console_frame, text="Tx Console", font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="bold"))
         self.tx_console_label.grid(row=0, column=0, sticky = "w")
-        self.tx_console_entry = customtkinter.CTkEntry(self.tx_console_frame, placeholder_text="Select Tx Command", width=389)
-        self.tx_console_entry.grid(row=1, column=0, pady=0, sticky = "w")
+        self.tx_console_entry = customtkinter.CTkEntry(self.tx_console_frame, placeholder_text="Select Tx Command")
+        self.tx_console_entry.grid(row=1, column=0, columnspan = 2, padx = (5,200), pady=0, sticky = "nsew")
         self.tx_console_send_button = customtkinter.CTkButton(self.tx_console_frame, text="Send", width=100, command=self.send_serial)
-        self.tx_console_send_button.grid(row=1, column=1,padx=(15,0),pady=0,sticky = "e")
+        self.tx_console_send_button.grid(row=1, column=1,padx=10,pady=0,sticky = "sne")
 
         # tx hex/utf8 option menu
-        self.tx_console_dtype_menu = customtkinter.CTkSegmentedButton(self.tx_console_frame,width=300, height=16)
-        self.tx_console_dtype_menu.grid(row=0, column=0, pady=(0,5), sticky="e")
+        self.tx_console_dtype_menu = customtkinter.CTkSegmentedButton(self.tx_console_frame)
+        self.tx_console_dtype_menu.grid(row=0, column=0, columnspan = 2, padx = (5,200), pady=10, sticky="nse")
         self.tx_console_dtype_menu.configure(values=[" Utf8 ", " Hex ","Dec","Binary"])
         self.tx_console_dtype_menu.set(" Hex ")
 
         # message frame
-        self.message_frame = customtkinter.CTkFrame(self, fg_color="#242424")
-        self.message_frame.grid(row = 5, column = 0, columnspan =2, padx=(10,0),sticky="nswe")
+        self.message_frame = customtkinter.CTkFrame(self,fg_color='transparent' )
+        self.message_frame.grid(row = 5, column = 0, columnspan =2, padx=(10,0),pady=5,sticky="nswe")
         self.message_box = customtkinter.CTkLabel(self.message_frame, text="Connect to begin", font=customtkinter.CTkFont(family="Inter" ,size = 12))
         self.message_box.grid(sticky = "w")
 
@@ -325,6 +329,7 @@ class MTQtesterApp(customtkinter.CTk):
                 self.canvas.draw()
 
 
+
     # Function to toggle line visibility
     def toggle_line(self, event):
         legend = event.artist
@@ -333,6 +338,8 @@ class MTQtesterApp(customtkinter.CTk):
         visible = not line.get_visible()
         line.set_visible(visible)
         legend.set_alpha(1.0 if visible else 0.2)
+        self.ax.relim()
+        self.ax.autoscale_view()
         plt.draw()
 
     def save_data(self):
@@ -348,9 +355,9 @@ class MTQtesterApp(customtkinter.CTk):
                 self.message_box.configure(text_color="green",text=f"Data saved to {output_path}")
                 
             except Exception as e:
-                self.message_box.configure(text_color="red",text="Error Generating CSV data")
+                self.message_box.configure(text="Error Generating CSV data")
         else:
-            self.message_box.configure(text_color="red",text="No data to save")
+            self.message_box.configure(text="No data to save")
         
     def clear_console(self):
         self.console_textbox.delete(0.0,'end')
