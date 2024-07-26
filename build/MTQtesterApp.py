@@ -14,13 +14,13 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 # customtkinter.set_appearance_mode("Light")
-customtkinter.deactivate_automatic_dpi_awareness()
+# customtkinter.deactivate_automatic_dpi_awareness()
 class MTQtesterApp(customtkinter.CTk):
     OUTPUT_PATH = Path(__file__).parent
     ASSETS_PATH = OUTPUT_PATH / Path(r"D:\MTQ-Tester-GUI\build\assets\frame0")
     def __init__(self):
         super().__init__()
-
+        
         self.geometry("1032x744")
         # self.wm_resizable(width=False, height=False)
         self.title("MTQ Tester")
@@ -33,7 +33,7 @@ class MTQtesterApp(customtkinter.CTk):
 
         # MTQ control vals
         self.MTQ_max_pwr = 2000
-        self.MTQ_min_pwr = 0
+        self.MTQ_min_pwr = -2000
         self.header = b'#S'
         self.terminator = b'\n'
         self.MTQ_ctrl_commands = {
@@ -64,6 +64,14 @@ class MTQtesterApp(customtkinter.CTk):
         # # App label
         self.app_label = customtkinter.CTkLabel(self, text="MTQ Tester Interface",font=customtkinter.CTkFont(family="Inter" ,size = 24, weight="bold"))
         self.app_label.grid(row=0, column=0, padx = 10, pady = 10, sticky = "w")
+        self.grid_columnconfigure(1, weight=1)
+
+        # theme selection
+        self.theme_select_menu = customtkinter.CTkSegmentedButton(self, command = self.change_appearance_mode_event)
+        self.theme_select_menu.configure(values=["Dark","Light"])
+        self.theme_select_menu.set("Dark")
+        self.theme_select_menu.grid(row=0, column=0, padx=10, pady=6 ,sticky='e')
+
         # Connection Settings
         self.com_port_dropdown = customtkinter.CTkComboBox(self, values=self.get_com_ports(), command=self.disconenct_to_serial)
         self.com_port_dropdown.grid(row=0, column=1, pady=10, padx=(0,330), sticky ='e')
@@ -95,7 +103,7 @@ class MTQtesterApp(customtkinter.CTk):
         # create scrollable textbox
         self.console_textbox = customtkinter.CTkTextbox(self.console_frame, activate_scrollbars=False,font=customtkinter.CTkFont(family="Inter" ,size = 13, weight="normal"))
         self.console_textbox.grid(row=1, column =0, columnspan =2,padx=6,pady=6,sticky="nsew")
-        self.textbox_scrollbar = customtkinter.CTkScrollbar(self.console_frame,bg_color="#1E1e1e", command=self.console_textbox.yview, width=15)
+        self.textbox_scrollbar = customtkinter.CTkScrollbar(self.console_frame, command=self.console_textbox.yview, width=15)
         self.textbox_scrollbar.grid(row=1, column=0,columnspan =2,padx=10, pady = 10,sticky="nse")
         self.console_textbox.configure(yscrollcommand=self.textbox_scrollbar.set)
         self.console_textbox_scroll = True
@@ -104,26 +112,8 @@ class MTQtesterApp(customtkinter.CTk):
         self.console_textbox.tag_config('sent', foreground='yellow')
         self.console_textbox.tag_config('error', foreground = "red")
 
-        # output_browse_frameframe
-        self.output_path_frame = customtkinter.CTkFrame(self, corner_radius=10, fg_color="#242424")
-        self.output_path_frame.grid(row = 4, column = 0,padx=(10,5), sticky ="nsew")
-        # self.console_frame.grid_rowconfigure(1, weight=1)
-        self.output_path_frame.grid_columnconfigure(0, weight=1)
-
-        self.output_path_label = customtkinter.CTkLabel(self.output_path_frame, text="Output Path:",font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="bold"))
-        self.output_path_label.grid(row = 0, column = 0, sticky = "nsw")
-        self.output_path_entry = customtkinter.CTkEntry(self.output_path_frame)
-        self.output_path_entry.grid(row = 1, column = 0, sticky = "nsew")
-        self.output_path_entry.insert(0, str(self.OUTPUT_PATH))  # default output folder
-        # browse button
-        self.button_image_browse = customtkinter.CTkImage(Image.open(self.relative_to_assets("folder_browse_icon.png")), size=(21,16))
-        self.btn_browse_folder = customtkinter.CTkButton(self.output_path_entry, image=self.button_image_browse, text=None, width=10, height=5, fg_color='transparent', hover_color="grey", command=self.browwse_output_folder)
-        self.btn_browse_folder.grid(row=0, column = 0, padx=(0,5), pady=0, sticky = "e")
-        self.save_data_button = customtkinter.CTkButton(self.output_path_frame, text="Save Data", width=100,command=self.save_data)
-        self.save_data_button.grid(row = 1, column = 1, padx=15,sticky ="e")
-
         # plotter frame
-        self.plotter_frame = customtkinter.CTkFrame(self, width=502, height=486, corner_radius=10, fg_color="#2B2B2B")
+        self.plotter_frame = customtkinter.CTkFrame(self, width=502, height=486, corner_radius=10)
         self.plotter_frame.grid(row = 1, column = 1,rowspan = 2,pady=(0,5), padx=(5,10),sticky ="nsew")
         self.plotter_frame.grid_rowconfigure(1, weight=1)
         self.plotter_frame.grid_columnconfigure(1, weight=1)
@@ -149,7 +139,7 @@ class MTQtesterApp(customtkinter.CTk):
         self.ax.tick_params(axis='y', colors='grey')
 
         # CMD selector frame
-        self.cmdSel_frame = customtkinter.CTkFrame(self, width=502, height=115, corner_radius=10, fg_color="#2B2B2B")
+        self.cmdSel_frame = customtkinter.CTkFrame(self, width=502, height=115, corner_radius=10)
         self.cmdSel_frame.grid(row = 3, column = 1,pady=(5,5), padx=(5,10),sticky ="nsew")
         # self.cmdSel_frame.grid_rowconfigure(1, weight=1)
         self.cmdSel_frame.grid_columnconfigure((1,3), weight=1)
@@ -181,21 +171,38 @@ class MTQtesterApp(customtkinter.CTk):
         self.cmdSel_dropdown = customtkinter.CTkComboBox(self.cmdSel_frame, width= 200, values=list(self.MTQ_ctrl_commands.keys()), command=self.update_tx_CMD)
         self.cmdSel_dropdown.grid(row=2, column=3,rowspan=2,padx=20, sticky = "ne")
 
+        # output_browse_frameframe
+        self.output_path_frame = customtkinter.CTkFrame(self, corner_radius=10)
+        self.output_path_frame.grid(row = 4, column = 0,padx=(10,5), sticky ="nsew")
+        # self.console_frame.grid_rowconfigure(1, weight=1)
+        self.output_path_frame.grid_columnconfigure(0, weight=1)
+
+        self.output_path_label = customtkinter.CTkLabel(self.output_path_frame, text="Output Path:",font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="bold"))
+        self.output_path_label.grid(row = 0, column = 0, padx= 5, sticky = "nsw")
+        self.output_path_entry = customtkinter.CTkEntry(self.output_path_frame)
+        self.output_path_entry.grid(row = 1, column = 0, padx = 5, sticky = "nsew")
+        self.output_path_entry.insert(0, str(self.OUTPUT_PATH))  # default output folder
+        # browse button
+        self.button_image_browse = customtkinter.CTkImage(Image.open(self.relative_to_assets("folder_browse_icon.png")), size=(21,16))
+        self.btn_browse_folder = customtkinter.CTkButton(self.output_path_entry, image=self.button_image_browse, text=None, width=10, height=5, fg_color='transparent', hover_color="grey", command=self.browwse_output_folder)
+        self.btn_browse_folder.grid(row=0, column = 0, padx=(0,5), pady=0, sticky = "e")
+        self.save_data_button = customtkinter.CTkButton(self.output_path_frame, text="Save Data", width=100,command=self.save_data)
+        self.save_data_button.grid(row = 1, column = 1, padx=15,sticky ="e")
+
         # tx_console_frame frame
-        self.tx_console_frame = customtkinter.CTkFrame(self, width=502, height=92, corner_radius=10, fg_color="#242424")
+        self.tx_console_frame = customtkinter.CTkFrame(self, corner_radius=10)
         self.tx_console_frame.grid(row = 4, column = 1,padx=(5,10),pady=(0,0),sticky ="nsew")
         # self.cmdSel_frame.grid_rowconfigure(1, weight=1)
         self.tx_console_frame.grid_columnconfigure((1), weight=1)
         self.tx_console_label = customtkinter.CTkLabel(self.tx_console_frame, text="Tx Console", font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="bold"))
-        self.tx_console_label.grid(row=0, column=0, sticky = "w")
+        self.tx_console_label.grid(row=0, column=0, padx=5, sticky = "nsw")
         self.tx_console_entry = customtkinter.CTkEntry(self.tx_console_frame, placeholder_text="Select Tx Command")
         self.tx_console_entry.grid(row=1, column=0, columnspan = 2, padx = (5,200), pady=0, sticky = "nsew")
         self.tx_console_send_button = customtkinter.CTkButton(self.tx_console_frame, text="Send", width=100, command=self.send_serial)
-        self.tx_console_send_button.grid(row=1, column=1,padx=10,pady=0,sticky = "sne")
-
+        self.tx_console_send_button.grid(row=1, column=1,padx=10,pady=0,sticky = "e")
         # tx hex/utf8 option menu
         self.tx_console_dtype_menu = customtkinter.CTkSegmentedButton(self.tx_console_frame)
-        self.tx_console_dtype_menu.grid(row=0, column=0, columnspan = 2, padx = (5,200), pady=10, sticky="nse")
+        self.tx_console_dtype_menu.grid(row=0, column=0, columnspan = 2, padx = (5,200), pady=5, sticky="nse")
         self.tx_console_dtype_menu.configure(values=[" Utf8 ", " Hex ","Dec","Binary"])
         self.tx_console_dtype_menu.set(" Hex ")
 
@@ -432,6 +439,9 @@ class MTQtesterApp(customtkinter.CTk):
         self.pwrY_label.insert(0,str(int(self.slider_Y.get())))
         self.pwrZ_label.insert(0,str(int(self.slider_Z.get())))
         self.update_tx_CMD()
+
+    def change_appearance_mode_event(self, new_appearance_mode: str):
+        customtkinter.set_appearance_mode(new_appearance_mode)
 
     def on_closing(self):
         self.disconenct_to_serial()
