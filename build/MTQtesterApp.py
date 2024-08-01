@@ -13,8 +13,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-# customtkinter.set_appearance_mode("Light")
-# customtkinter.deactivate_automatic_dpi_awareness()
+customtkinter.deactivate_automatic_dpi_awareness()
 class MTQtesterApp(customtkinter.CTk):
     OUTPUT_PATH = Path(__file__).parent
     ASSETS_PATH = OUTPUT_PATH / Path(r"D:\MTQ-Tester-GUI\build\assets\frame0")
@@ -95,10 +94,10 @@ class MTQtesterApp(customtkinter.CTk):
         self.console_dtype_menu.configure(values=["Utf8","Hex","Dec","Binary"])
         self.console_dtype_menu.set("Utf8")
         # Clear button
-        self.btn_clear_console = customtkinter.CTkButton(self.console_frame, text="Clear", width=60,fg_color='transparent',border_color="#949A9f", hover_color = "grey",border_width=2,command=self.clear_console)
+        self.btn_clear_console = customtkinter.CTkButton(self.console_frame, text="Clear", width=60,command=self.clear_console)
         self.btn_clear_console.grid(row=0, column = 1, padx=(0,70), pady=6, sticky="e")
         # lock button
-        self.btn_lock = customtkinter.CTkButton(self.console_frame, text="Lock", width=60,fg_color='transparent',border_color="#949A9f", hover_color = "grey",border_width=2, command=self.toggle_scroll_lock)
+        self.btn_lock = customtkinter.CTkButton(self.console_frame, text="Lock", width=60, command=self.toggle_scroll_lock)
         self.btn_lock.grid(row=0, column = 1, padx=(0,5), pady=6, sticky="e")
         # create scrollable textbox
         self.console_textbox = customtkinter.CTkTextbox(self.console_frame, activate_scrollbars=False,font=customtkinter.CTkFont(family="Inter" ,size = 13, weight="normal"))
@@ -118,7 +117,7 @@ class MTQtesterApp(customtkinter.CTk):
         self.plotter_frame.grid_rowconfigure(1, weight=1)
         self.plotter_frame.grid_columnconfigure(1, weight=1)
 
-        self.btn_clear_chart = customtkinter.CTkButton(self.plotter_frame, text="Clear", width=60,fg_color='transparent',border_color="#949A9f", hover_color = "grey",border_width=2,command=self.clear_chart)
+        self.btn_clear_chart = customtkinter.CTkButton(self.plotter_frame, text="Clear", width=60,command=self.clear_chart)
         self.btn_clear_chart.grid(row=0, column = 1, padx=(10,10), pady=6, sticky="e")
 
         # graph area
@@ -159,11 +158,11 @@ class MTQtesterApp(customtkinter.CTk):
         self.slider_Y.grid(row=2, column=1, padx=(5, 5),pady=1,  sticky="we")
         self.slider_Z = customtkinter.CTkSlider(self.cmdSel_frame, from_=self.MTQ_min_pwr, to=self.MTQ_max_pwr, number_of_steps=self.MTQ_max_pwr,height=25, command=self.update_slider_vals)
         self.slider_Z.grid(row=3, column=1, padx=(5, 5), pady=1, sticky="we")
-        self.pwrX_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_X.get())),  border_color='#2B2B2B',fg_color='transparent', font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
+        self.pwrX_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_X.get())),border_width =0,  border_color='#2B2B2B',fg_color='transparent', font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
         self.pwrX_label.grid(row=1, column=2, sticky = "nswe")
-        self.pwrY_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_Y.get())),  border_color='#2B2B2B',fg_color='transparent',font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
+        self.pwrY_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_Y.get())),border_width =0, border_color='#2B2B2B',fg_color='transparent',font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
         self.pwrY_label.grid(row=2, column=2, sticky = "nswe")
-        self.pwrZ_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_Z.get())), border_color='#2B2B2B',fg_color='transparent', font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
+        self.pwrZ_label = customtkinter.CTkEntry(self.cmdSel_frame, placeholder_text=str(int(self.slider_Z.get())),border_width =0, border_color='#2B2B2B',fg_color='transparent', font=customtkinter.CTkFont(family="Inter" ,size = 12, weight="bold"))
         self.pwrZ_label.grid(row=3, column=2, sticky = "nswe")
 
         self.pwrsel_label = customtkinter.CTkLabel(self.cmdSel_frame, text="Select Command", font=customtkinter.CTkFont(family="Inter" ,size = 16, weight="bold"))
@@ -271,7 +270,6 @@ class MTQtesterApp(customtkinter.CTk):
                             lines = buffer.split(b'\n')
                             for line in lines[:-1]:
                                 self.plot_data_queue.put(line.decode('utf-8'))
-                                # self.animate_plot()
                                 self.display_message(line+b'\n', msg_type="received")
                             buffer = lines[-1]
             except serial.SerialException as e:
@@ -324,6 +322,18 @@ class MTQtesterApp(customtkinter.CTk):
                     if len(data) > 100:
                         data.pop(0)  # Keep the last 100 data points
                     line.set_data(self.timestamps[-len(data):], data)
+
+                # Only recompute limits based on visible lines
+                visible_lines = [line for line, _ in self.lines.values() if line.get_visible()]
+                if visible_lines:
+                    x_data = np.concatenate([line.get_xdata() for line in visible_lines])
+                    y_data = np.concatenate([line.get_ydata() for line in visible_lines])
+                    self.ax.set_xlim(x_data.min(), x_data.max())
+                    self.ax.set_ylim(y_data.min(), y_data.max())
+                else:
+                    self.ax.set_xlim(auto=True)
+                    self.ax.set_ylim(auto=True)
+
                 self.ax.relim()
                 self.ax.autoscale_view()
                 self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%M:%S'))
@@ -335,8 +345,6 @@ class MTQtesterApp(customtkinter.CTk):
                 self.fig.canvas.mpl_connect('pick_event', self.toggle_line)
                 self.canvas.draw()
 
-
-
     # Function to toggle line visibility
     def toggle_line(self, event):
         legend = event.artist
@@ -344,10 +352,8 @@ class MTQtesterApp(customtkinter.CTk):
         line = self.lines[label][0]
         visible = not line.get_visible()
         line.set_visible(visible)
-        legend.set_alpha(1.0 if visible else 0.2)
-        self.ax.relim()
-        self.ax.autoscale_view()
-        plt.draw()
+        legend.set_alpha(1.0 if visible else 0.6)
+        self.canvas.draw()
 
     def save_data(self):
         output_path = self.output_path_entry.get()
@@ -372,26 +378,15 @@ class MTQtesterApp(customtkinter.CTk):
     def clear_chart(self):
         self.lines = {}
         self.timestamps = []
-        # Clear the axes
         self.ax.cla()
-        # Re-apply the styling and formatting
-        self.ax.set_facecolor("#1E1E1E")
-        self.ax.spines['left'].set_color("grey")
-        self.ax.spines['bottom'].set_color("grey")
-        self.ax.spines['right'].set_color("#1E1E1E")
-        self.ax.spines['top'].set_color("#1E1E1E")
-        self.ax.tick_params(axis='x', colors='grey')
-        self.ax.tick_params(axis='y', colors='grey')
-        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%M:%S'))
-        # Redraw the canvas
         self.canvas.draw()
 
     def toggle_scroll_lock(self):
         self.console_textbox_scroll = not self.console_textbox_scroll
         if self.console_textbox_scroll:
-            self.btn_lock.configure(fg_color = "transparent")
+            self.btn_lock.configure(border_width = 0)
         else:
-            self.btn_lock.configure(fg_color = "darkgrey", hover_color = "grey")
+            self.btn_lock.configure(border_width = 2)
     
     def encode_command(self, reg_id, data):
         command = bytearray()
@@ -442,6 +437,26 @@ class MTQtesterApp(customtkinter.CTk):
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
+        if new_appearance_mode == "Light":
+            self.console_textbox.tag_config('received', foreground='black')
+            self.graph_frame.configure(fg_color = "white")
+            self.fig.patch.set_facecolor("white")
+            self.ax.set_facecolor("white")
+            self.ax.spines['left'].set_color("grey")
+            self.ax.spines['bottom'].set_color("grey")
+            self.ax.spines['right'].set_color("white")
+            self.ax.spines['top'].set_color("white")
+            self.canvas.draw_idle()
+        elif new_appearance_mode == "Dark":
+            self.console_textbox.tag_config('received', foreground='white')
+            self.graph_frame.configure(fg_color = "#1e1e1e")
+            self.fig.patch.set_facecolor("#1E1e1e")
+            self.ax.set_facecolor("#1E1e1e")
+            self.ax.spines['left'].set_color("grey")
+            self.ax.spines['bottom'].set_color("grey")
+            self.ax.spines['right'].set_color("#1E1e1e")
+            self.ax.spines['top'].set_color("#1E1e1e")
+            self.canvas.draw_idle()
 
     def on_closing(self):
         self.disconenct_to_serial()
